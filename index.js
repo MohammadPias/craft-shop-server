@@ -11,6 +11,8 @@ const port = process.env.PORT || 5000;
 app.use(cors())
 app.use(express.json())
 
+const stripe = require("stripe")(process.env.CLIENT_SECRET);
+
 // firebase initialize app
 var serviceAccount = require('./craft-shop-43971-firebase-adminsdk-ffp0k-c3f6f18dbb.json');
 admin.initializeApp({
@@ -43,7 +45,8 @@ async function run() {
 
         const database = client.db('craft-shop');
         const userCollection = database.collection('users');
-        const productCollection = database.collection('products')
+        const productCollection = database.collection('products');
+        const orderCollection = database.collection('orders')
 
         // add user to database
         app.post('/users', async (req, res) => {
@@ -165,7 +168,54 @@ async function run() {
                 count: productCount,
                 products: result,
             })
+        });
+
+        // get product by id
+        app.get('/products/:productId', async (req, res) => {
+            const productId = req.params.productId;
+            const query = { _id: ObjectId(productId) }
+            const result = await productCollection.findOne(query)
+            console.log(result)
+            res.json(result)
         })
+
+        app.post('/products/keys', async (req, res) => {
+            const arr = req.body.productKeys;
+            const newArray = []
+            if (arr?.length > 0) {
+                for (const key of arr) {
+                    newArray.push(ObjectId(key))
+                }
+            }
+            console.log('new array', newArray)
+            const query = { _id: { $in: newArray } }
+            let result = []
+            if (newArray?.length > 0) {
+                console.log('hot from the for loop')
+                result = await productCollection.find(query).toArray();
+            }
+            console.log(result, arr)
+            res.json(result)
+        })
+
+        // payment method
+        app.post("/create-payment-intent", async (req, res) => {
+            const { amount } = req.body;
+            console.log(stripe)
+            console.log(typeof (amount))
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount * 100,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+            console.log(paymentIntent.client_secret)
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        // order management
 
 
     }
