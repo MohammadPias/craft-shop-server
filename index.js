@@ -4,13 +4,15 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const ObjectId = require('mongodb').ObjectId;
 require('dotenv').config();
 var admin = require("firebase-admin");
-const SSLCommerzPayment = require('sslcommerz')
+const SSLCommerzPayment = require('sslcommerz');
+const fileUpload = require('express-fileupload')
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors())
 app.use(express.json())
+app.use(fileUpload())
 
 const stripe = require("stripe")(process.env.CLIENT_SECRET);
 
@@ -33,6 +35,21 @@ async function DeleteUser(req, res, next) {
             });
     }
 
+    next();
+}
+
+async function VerifyToken(req, res, next) {
+    if (req?.headers?.authorization?.startsWith('Bearer ')) {
+        const token = req.headers.authorization.split('Bearer ')[1];
+        try {
+            const decodedUser = await admin.auth().verifyIdToken(token);
+            req.decodedUserEmail = decodedUser.email;
+            // console.log(decodedUser.email)
+        }
+        catch {
+
+        }
+    }
     next();
 }
 
@@ -157,11 +174,17 @@ async function run() {
         // add product
         app.post('/products', async (req, res) => {
             const product = req.body;
-            const date = new Date().toLocaleString();
+            const pic = req.files.image;
+            const picData = pic.data;
+            const encodedPicData = picData.toString('base64');
+            const bufferImage = Buffer.from(encodedPicData, 'base64')
+
+            // console.log(bufferImage)
+            const date = new Date().toLocaleDateString();
             const time = new Date().getTime();
-            const tempProduct = { ...product, createdAtDate: date, createdAtTime: time }
+            const tempProduct = { ...product, createdAtDate: date, createdAtTime: time, image: bufferImage }
             const result = await productCollection.insertOne(tempProduct);
-            // console.log('hit the post', product, result)
+            console.log('hit the post', product, result)
             res.json(result);
         });
 
@@ -189,17 +212,17 @@ async function run() {
                 else if (filterType === 'footwear') {
                     const cursor = productCollection.find({ category: 'Footwear' });
                     result = await cursor.skip(currPage * productPerPage).limit(productPerPage).toArray();
-                    console.log('hitting from filter footwear')
+                    // console.log('hitting from filter footwear')
 
                 }
                 else {
                     result = await cursor.skip(currPage * productPerPage).limit(productPerPage).toArray();
-                    console.log('hitting from filter all product')
+                    // console.log('hitting from filter all product')
                 }
             }
             else {
                 result = await cursor.toArray();
-                console.log('hit from without filter')
+                // console.log('hit from without filter')
             }
             res.send({
                 count: productCount,
@@ -208,6 +231,39 @@ async function run() {
                 products: result,
             })
         });
+
+        /// Search Products
+        app.get('/searchProducts', async (req, res) => {
+            const search = req.query.search;
+            console.log(search)
+            res.json('hello')
+        })
+
+        // update Products
+        app.put('/products/:productId', async (req, res) => {
+            const productId = req.params.productId;
+            const review = req.body.formData;
+            const updateInfo = req.body.updateInfo;
+
+            const query = { _id: ObjectId(productId) };
+
+            let result = {};
+            if (review?.rating) {
+                const updateDoc = {
+                    $push: { reviews: review }
+                }
+                result = await productCollection.updateOne(query, updateDoc)
+            }
+            else {
+                const updateDoc = {
+                    $set: updateInfo
+                }
+                result = await productCollection.updateOne(query, updateDoc)
+            }
+            // console.log('')
+            // console.log(result, updateInfo)
+            res.json(result)
+        })
 
         // get product by id
         app.get('/products/:productId', async (req, res) => {
@@ -218,17 +274,30 @@ async function run() {
             res.json(result)
         })
 
+        // product deleted by id
+        app.delete('/products/:id', async (req, res) => {
+            const productId = req.params.id;
+            const query = { _id: ObjectId(productId) };
+            const result = await productCollection.deleteOne(query);
+            // console.log(productId, result)
+            res.send(result)
+        })
+
         // Stripe Payment Gateway========
         app.post("/create-payment-intent", async (req, res) => {
             const { amount } = req.body;
-            const paymentIntent = await stripe.paymentIntents.create({
-                amount: amount * 100,
-                currency: "usd",
-                payment_method_types: ['card']
-            });
-            res.send({
-                clientSecret: paymentIntent.client_secret,
-            });
+            console.log(amount * 100, typeof (amount))
+            const newAmount = amount * 100;
+            if (newAmount) {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount: amount * 100,
+                    currency: "usd",
+                    payment_method_types: ['card']
+                });
+                res.send({
+                    clientSecret: paymentIntent.client_secret,
+                });
+            }
         });
 
         // SSLCommerz Payment Gateway==========
@@ -295,51 +364,78 @@ async function run() {
 
         app.post('/orders', async (req, res) => {
             const orders = req.body;
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const time = new Date().getTime();
             const tempOrder = { ...orders, createdAtDate: date, createdAtTime: time }
             const result = await orderCollection.insertOne(tempOrder)
             res.json(result)
         })
+        // update orders (payment)
+        app.put('/updateOrders', async (req, res) => {
+            const { payment } = req.body;
+            const query = { _id: ObjectId(payment?.orderId) }
+            const updateDoc = {
+                $set: { payment: payment }
+            }
+            const result = await orderCollection.updateOne(query, updateDoc)
+            console.log(payment, result)
+            res.json(result)
+        })
 
         // get orders
-        app.get('/myOrders', async (req, res) => {
-
-            const currPage = parseInt(req.query.currPage);
-            const orderPerPage = parseInt(req.query.orderPerPage);
-            const filterType = req.query.filterType;
+        app.get('/myOrders', VerifyToken, async (req, res) => {
             const email = req.query.email;
 
-            const cursor = orderCollection.find({ 'shipping.email': email });
-            const totalOrders = await cursor.toArray();
-            const deliveredOrders = orderCollection.find({ 'shipping.email': email, status: 'delivered' });
-            const deliveredArray = await deliveredOrders.toArray();
+            console.log(req.decodedUserEmail)
+            if (req.decodedUserEmail === email) {
+                const currPage = parseInt(req.query.currPage);
+                const orderPerPage = parseInt(req.query.orderPerPage);
+                const filterType = req.query.filterType;
 
-            console.log()
-            // let deliverOrder = [];
-            let restOrders = [];
-            let result = [];
-            if (filterType === 'delivered') {
+                const cursor = orderCollection.find({ 'shipping.email': email });
+                const totalOrders = await cursor.toArray();
                 const deliveredOrders = orderCollection.find({ 'shipping.email': email, status: 'delivered' });
-                result = await deliveredOrders.skip(currPage * orderPerPage).limit(orderPerPage).toArray();
+                const deliveredArray = await deliveredOrders.toArray();
+
+                // console.log()
+                // let deliverOrder = [];
+                let restOrders = [];
+                let result = [];
+                if (filterType === 'delivered') {
+                    const deliveredOrders = orderCollection.find({ 'shipping.email': email, status: 'delivered' });
+                    result = await deliveredOrders.skip(currPage * orderPerPage).limit(orderPerPage).toArray();
+                }
+                else {
+
+                    // result = await orderCollection.find({ 'shipping.email': email }).skip(currPage * orderPerPage).limit(orderPerPage).toArray();
+                    if (totalOrders?.length > 0) {
+                        result = totalOrders?.filter(item => item.status !== 'delivered')
+                        // result = [...restOrders.skip(currPage * orderPerPage).limit(orderPerPage)]
+                    }
+                }
+
+
+                // console.log(result)
+
+                res.send({
+                    totalOrders: totalOrders?.length,
+                    deliveredOrders: deliveredArray?.length,
+                    data: result
+                })
             }
             else {
-
-                // result = await orderCollection.find({ 'shipping.email': email }).skip(currPage * orderPerPage).limit(orderPerPage).toArray();
-                if (totalOrders?.length > 0) {
-                    result = totalOrders?.filter(item => item.status !== 'delivered')
-                    // result = [...restOrders.skip(currPage * orderPerPage).limit(orderPerPage)]
-                }
+                res.status(401).json('Unauthorized User')
             }
 
+        })
+        // find order by id
+        app.get('/findOrder/:id', async (req, res) => {
+            const orderId = req.params.id;
 
+            const query = { _id: ObjectId(orderId) };
+            const result = await orderCollection.findOne(query)
             console.log(result)
-
-            res.send({
-                totalOrders: totalOrders?.length,
-                deliveredOrders: deliveredArray?.length,
-                data: result
-            })
+            res.json(result)
         })
         app.get('/orders', async (req, res) => {
             const currPage = parseInt(req.query.currPage);
@@ -403,7 +499,7 @@ async function run() {
         app.put('/orders', async (req, res) => {
             const id = req.query.id;
             const action = req.query.action;
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const time = new Date().getTime();
             const filter = { _id: ObjectId(id) }
             const updateDoc = {
