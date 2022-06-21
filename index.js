@@ -82,13 +82,13 @@ async function run() {
                 const updateDoc = {
                     $set: { displayName: user?.displayName, role: user?.role }
                 };
-                result = userCollection.updateOne(filter, updateDoc);
+                result = await userCollection.updateOne(filter, updateDoc);
             }
             else if (user?.role === 'admin' || user?.role === 'user') {
                 const updateDoc = {
                     $set: { role: user?.role }
                 };
-                result = userCollection.updateOne(filter, updateDoc);
+                result = await userCollection.updateOne(filter, updateDoc);
             }
             else {
                 const updateDoc = {
@@ -99,11 +99,34 @@ async function run() {
                         uid: user.uid,
                     }
                 };
-                result = userCollection.updateOne(filter, updateDoc, options);
-                console.log(user, result)
+                result = await userCollection.updateOne(filter, updateDoc, options);
+                // console.log(user, result)
             }
             res.json(result);
         });
+
+        app.put('/user/update', async (req, res) => {
+            const email = req.query.email;
+            const shipping = req.body;
+            const query = { email: email }
+
+            const updateDoc = {
+                $set: { shipping: shipping }
+            }
+            const result = await userCollection.updateOne(query, updateDoc)
+            const user = await userCollection.findOne(query)
+            // console.log(result, email, shipping, user)
+            res.json(result)
+        })
+
+        // find user by email
+        app.get('/user/find', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await userCollection.findOne(query)
+            console.log(email, result)
+            res.json(result)
+        })
 
         app.get('/users', async (req, res) => {
             const currPage = parseInt(req.query.currPage);
@@ -184,7 +207,7 @@ async function run() {
             const time = new Date().getTime();
             const tempProduct = { ...product, createdAtDate: date, createdAtTime: time, image: bufferImage }
             const result = await productCollection.insertOne(tempProduct);
-            console.log('hit the post', product, result)
+            // console.log('hit the post', product, result)
             res.json(result);
         });
 
