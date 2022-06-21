@@ -17,7 +17,8 @@ app.use(fileUpload())
 const stripe = require("stripe")(process.env.CLIENT_SECRET);
 
 // firebase initialize app
-var serviceAccount = require('./craft-shop-43971-firebase-adminsdk-ffp0k-c3f6f18dbb.json');
+var serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// console.log(serviceAccount)
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
