@@ -18,10 +18,10 @@ const stripe = require("stripe")(process.env.CLIENT_SECRET);
 
 // firebase initialize app
 var serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-// console.log(serviceAccount)
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
+
 
 async function DeleteUser(req, res, next) {
     const uid = req.query?.uid
@@ -57,7 +57,7 @@ async function VerifyToken(req, res, next) {
 
 const uri = `mongodb+srv://${process.env.USER}:${process.env.PASSWORD}@cluster0.o4muq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-
+console.log(uri)
 async function run() {
     try {
         await client.connect()
