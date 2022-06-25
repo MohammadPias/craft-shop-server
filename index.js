@@ -125,7 +125,7 @@ async function run() {
             const email = req.query.email;
             const query = { email: email }
             const result = await userCollection.findOne(query)
-            console.log(email, result)
+            // console.log(email, result)
             res.json(result)
         })
 
@@ -150,12 +150,12 @@ async function run() {
 
             let result = [];
             if (search === 'admins') {
-                console.log(currPage, 'admin filter')
+                // console.log(currPage, 'admin filter')
                 const cursor = userCollection.find(query);
                 result = await cursor.skip(currPage * userPerPage).limit(userPerPage).toArray()
             }
             else {
-                console.log('hitted from users')
+                // console.log('hitted from users')
                 const cursor = userCollection.find({})
                 result = await cursor.skip(currPage * userPerPage).limit(userPerPage).toArray()
             }
@@ -170,7 +170,7 @@ async function run() {
         // delete user
         app.delete('/users', DeleteUser, async (req, res) => {
             const id = req.query?.id
-            console.log(id)
+            // console.log(id)
             const query = { _id: ObjectId(id) }
             const result = await userCollection.deleteOne(query)
             res.json(result)
@@ -193,6 +193,26 @@ async function run() {
             res.json({ admin: admin })
         })
 
+        /// update user profile pic
+        app.put('/user/profile', async (req, res) => {
+            const email = req.query.email;
+            const pic = req?.files?.photoURL;
+            const picData = pic?.data?.toString('base64');
+            const bufferPic = Buffer.from(picData, 'base64')
+
+            const query = { email: email }
+            const updateDoc = {
+                $set: { photoURL: bufferPic }
+            }
+            const result = await userCollection.updateOne(query, updateDoc)
+
+            const user = await userCollection.findOne(query)
+            res.json({
+                result,
+                photoURL: user?.photoURL,
+            })
+        })
+
         // Products Managements ==============
 
         // add product
@@ -203,12 +223,10 @@ async function run() {
             const encodedPicData = picData.toString('base64');
             const bufferImage = Buffer.from(encodedPicData, 'base64')
 
-            // console.log(bufferImage)
             const date = new Date().toLocaleDateString();
             const time = new Date().getTime();
             const tempProduct = { ...product, createdAtDate: date, createdAtTime: time, image: bufferImage }
             const result = await productCollection.insertOne(tempProduct);
-            // console.log('hit the post', product, result)
             res.json(result);
         });
 
@@ -230,23 +248,20 @@ async function run() {
                     const query = { category: 'Basket' };
                     const cursor = productCollection.find(query);
                     result = await cursor.skip(currPage * productPerPage).limit(productPerPage).toArray();
-                    // console.log('hitting from basket')
                     console.log('hitting from filter basket', currPage, productPerPage)
                 }
                 else if (filterType === 'footwear') {
                     const cursor = productCollection.find({ category: 'Footwear' });
                     result = await cursor.skip(currPage * productPerPage).limit(productPerPage).toArray();
-                    // console.log('hitting from filter footwear')
 
                 }
                 else {
                     result = await cursor.skip(currPage * productPerPage).limit(productPerPage).toArray();
-                    // console.log('hitting from filter all product')
+
                 }
             }
             else {
                 result = await cursor.toArray();
-                // console.log('hit from without filter')
             }
             res.send({
                 count: productCount,
@@ -259,7 +274,6 @@ async function run() {
         /// Search Products
         app.get('/searchProducts', async (req, res) => {
             const search = req.query.search;
-            console.log(search)
             res.json('hello')
         })
 
