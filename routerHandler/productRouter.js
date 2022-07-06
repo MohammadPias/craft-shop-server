@@ -7,8 +7,8 @@ const {
     deleteProduct
 } = require('../controllers/product.controller');
 
-
 const router = express.Router();
+
 router.get('/', getProducts)
 router.get('/:productId', getProductById)
 router.post('/', addProduct)

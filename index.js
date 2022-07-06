@@ -21,27 +21,27 @@ app.use(fileUpload())
 const stripe = require("stripe")(process.env.CLIENT_SECRET);
 
 // firebase initialize app
-var serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+// var serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount)
+// });
 
 
-async function DeleteUser(req, res, next) {
-    const uid = req.query?.uid
-    if (req.query?.uid) {
-        admin.auth()
-            .deleteUser(uid)
-            .then(() => {
-                console.log('Successfully deleted user');
-            })
-            .catch((error) => {
-                console.log('Error deleting user:', error);
-            });
-    }
+// async function DeleteUser(req, res, next) {
+//     const uid = req.query?.uid
+//     if (req.query?.uid) {
+//         admin.auth()
+//             .deleteUser(uid)
+//             .then(() => {
+//                 console.log('Successfully deleted user');
+//             })
+//             .catch((error) => {
+//                 console.log('Error deleting user:', error);
+//             });
+//     }
 
-    next();
-}
+//     next();
+// }
 
 async function VerifyToken(req, res, next) {
     if (req?.headers?.authorization?.startsWith('Bearer ')) {
@@ -81,115 +81,6 @@ start();
 //         const userCollection = database.collection('users');
 //         const productCollection = database.collection('products');
 //         const orderCollection = database.collection('orders')
-
-//         // add user to database
-//         app.post('/users', async (req, res) => {
-//             const user = req.body;
-//             const result = await userCollection.insertOne(user);
-//             res.json(result);
-//         });
-//         app.put('/users', async (req, res) => {
-//             const user = req.body;
-//             const filter = { email: user.email }
-
-//             const options = { upsert: true };
-//             let result;
-//             if (user?.role === 'admin' && user?.displayName) {
-//                 const updateDoc = {
-//                     $set: { displayName: user?.displayName, role: user?.role }
-//                 };
-//                 result = await userCollection.updateOne(filter, updateDoc);
-//             }
-//             else if (user?.role === 'admin' || user?.role === 'user') {
-//                 const updateDoc = {
-//                     $set: { role: user?.role }
-//                 };
-//                 result = await userCollection.updateOne(filter, updateDoc);
-//             }
-//             else {
-//                 const updateDoc = {
-//                     $set: {
-//                         displayName: user.displayName,
-//                         email: user.email,
-//                         photoURL: user.photoURL,
-//                         uid: user.uid,
-//                     }
-//                 };
-//                 result = await userCollection.updateOne(filter, updateDoc, options);
-//                 // console.log(user, result)
-//             }
-//             res.json(result);
-//         });
-
-//         app.put('/user/update', async (req, res) => {
-//             const email = req.query.email;
-//             const shipping = req.body;
-//             const query = { email: email }
-
-//             const updateDoc = {
-//                 $set: { shipping: shipping }
-//             }
-//             const result = await userCollection.updateOne(query, updateDoc)
-//             const user = await userCollection.findOne(query)
-//             // console.log(result, email, shipping, user)
-//             res.json(result)
-//         })
-
-//         // find user by email
-//         app.get('/user/find', async (req, res) => {
-//             const email = req.query.email;
-//             const query = { email: email }
-//             const result = await userCollection.findOne(query)
-//             // console.log(email, result)
-//             res.json(result)
-//         })
-
-//         app.get('/users', async (req, res) => {
-//             const currPage = parseInt(req.query.currPage);
-//             const userPerPage = parseInt(req.query.userPerPage);
-
-//             const count = await userCollection.estimatedDocumentCount();
-//             const query = { role: 'admin' };
-//             const cursor = userCollection.find(query);
-//             const adminArray = await cursor.toArray();
-//             // console.log(currPage, userPerPage)
-
-//             let adminCount = 0;
-//             for (const admin of adminArray) {
-//                 if (admin?.role === 'admin') {
-//                     adminCount = adminCount + 1;
-//                 }
-//             }
-//             const search = req.query.search;
-//             // console.log(search)
-
-//             let result = [];
-//             if (search === 'admins') {
-//                 // console.log(currPage, 'admin filter')
-//                 const cursor = userCollection.find(query);
-//                 result = await cursor.skip(currPage * userPerPage).limit(userPerPage).toArray()
-//             }
-//             else {
-//                 // console.log('hitted from users')
-//                 const cursor = userCollection.find({})
-//                 result = await cursor.skip(currPage * userPerPage).limit(userPerPage).toArray()
-//             }
-
-//             // console.log(adminCount)
-//             res.send({
-//                 adminCount,
-//                 count,
-//                 users: result,
-//             })
-//         });
-//         // delete user
-//         app.delete('/users', DeleteUser, async (req, res) => {
-//             const id = req.query?.id
-//             // console.log(id)
-//             const query = { _id: ObjectId(id) }
-//             const result = await userCollection.deleteOne(query)
-//             res.json(result)
-//         })
 
 //         // check admin
 //         app.get('/checkAmin/:email', async (req, res) => {
