@@ -17,23 +17,6 @@ class MongoServer {
     }
 }
 
-/* async function run(callback) {
-    // callback('connected')
-    try {
-        await client.connect();
-        const database = client.db('craft-shop');
-        const productCollection = database.collection('products')
-        return {
-            productCollection
-        }
-        // console.log(result)
-
-
-    } catch (err) {
-        await client.close();
-    }
-} */
-
 const productCollection = async () => {
     return await database.collection('products').find({}).toArray()
 }

@@ -73,6 +73,31 @@ const updateShipping = async (req, res) => {
         res.status(500).json('There was a server side error!!')
     }
 };
+const updateProfile = async (req, res) => {
+    const userCollection = MongoServer.userCollection;
+
+    try {
+
+        const email = req.query.email;
+        const pic = req?.files?.photoURL;
+        const picData = pic?.data?.toString('base64');
+        const bufferPic = Buffer.from(picData, 'base64')
+
+        const query = { email: email }
+        const updateDoc = {
+            $set: { photoURL: bufferPic }
+        }
+        const result = await userCollection.updateOne(query, updateDoc)
+
+        const user = await userCollection.findOne(query)
+        res.status(200).json({
+            result,
+            photoURL: user?.photoURL,
+        })
+    } catch (err) {
+        res.status(500).json('There was a server side error!!')
+    }
+};
 
 const getUserByEmail = async (req, res) => {
     const userCollection = MongoServer.userCollection;
@@ -139,9 +164,31 @@ const deleteUser = async (req, res) => {
         const id = req.query?.id
         const query = { _id: ObjectId(id) }
         const result = await userCollection.deleteOne(query)
-        console.log(result)
 
         res.status(200).json(result)
+    } catch (err) {
+        res.status(500).json('There was a server side error!!')
+    }
+};
+
+const checkAdmin = async (req, res) => {
+    const userCollection = MongoServer.userCollection;
+
+    try {
+        const email = req.params.email;
+        // console.log(email)
+        const query = { email: email }
+        const result = await userCollection.findOne(query);
+
+        let admin = false;
+        if (result?.role === 'admin') {
+            admin = true
+        }
+        else {
+            admin = false
+        }
+        res.status(200).json({ admin: admin })
+
     } catch (err) {
         res.status(500).json('There was a server side error!!')
     }
@@ -153,5 +200,7 @@ module.exports = {
     updateShipping,
     getUserByEmail,
     getUsers,
-    deleteUser
+    deleteUser,
+    updateProfile,
+    checkAdmin
 }

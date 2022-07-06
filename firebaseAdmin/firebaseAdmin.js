@@ -21,4 +21,18 @@ async function DeleteUser(req, res, next) {
     next();
 }
 
-module.exports = { DeleteUser };
+async function VerifyToken(req, res, next) {
+    if (req?.headers?.authorization?.startsWith('Bearer ')) {
+        const token = req.headers.authorization.split('Bearer ')[1];
+        try {
+            const decodedUser = await admin.auth().verifyIdToken(token);
+            req.decodedUserEmail = decodedUser?.email;
+        }
+        catch {
+            res.status(402).send('Can not parse your profile by access token!!')
+        }
+    }
+    next();
+}
+
+module.exports = { DeleteUser, VerifyToken };
