@@ -2,7 +2,7 @@ const MongoServer = require('../database/db');
 const ObjectId = require('mongodb').ObjectId;
 
 const addOrder = async (req, res) => {
-    const orderCollection = MongoServer.userCollection;
+    const orderCollection = MongoServer.orderCollection;
     try {
         const orders = req.body;
         const date = new Date().toLocaleDateString();
@@ -17,7 +17,7 @@ const addOrder = async (req, res) => {
 }
 
 const updateOrderPayment = async (req, res) => {
-    const orderCollection = MongoServer.userCollection;
+    const orderCollection = MongoServer.orderCollection;
     try {
         const orders = req.body;
         const date = new Date().toLocaleDateString();
