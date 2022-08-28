@@ -18,13 +18,20 @@ const addOrder = async (req, res) => {
 
 const updateOrderPayment = async (req, res) => {
     const orderCollection = MongoServer.orderCollection;
+    console.log(req.body)
     try {
-        const orders = req.body;
+        const { payment } = req.body;
+        const orderId = payment?.orderId;
         const date = new Date().toLocaleDateString();
         const time = new Date().getTime();
-        const tempOrder = { ...orders, createdAtDate: date, createdAtTime: time }
-        const result = await orderCollection.insertOne(tempOrder)
-
+        const query = { _id: ObjectId(orderId) }
+        const updateDoc = {
+            $set: {
+                payment
+            }
+        }
+        const options = { upsert: true }
+        const result = await orderCollection.updateOne(query, updateDoc, options)
         res.status(200).json(result)
     } catch (err) {
         res.status(500).send('This is server side error!!')

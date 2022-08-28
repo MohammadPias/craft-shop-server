@@ -22,6 +22,7 @@ async function DeleteUser(req, res, next) {
 }
 
 async function VerifyToken(req, res, next) {
+    // console.log(req.headers)
     if (req?.headers?.authorization?.startsWith('Bearer ')) {
         const token = req.headers.authorization.split('Bearer ')[1];
         try {

@@ -122,16 +122,7 @@ const getUsers = async (req, res) => {
 
         const count = await userCollection.estimatedDocumentCount();
         const query = { role: 'admin' };
-        const cursor = userCollection.find(query);
-        const adminArray = await cursor.toArray();
-        // console.log(currPage, userPerPage)
-
-        let adminCount = 0;
-        for (const admin of adminArray) {
-            if (admin?.role === 'admin') {
-                adminCount = adminCount + 1;
-            }
-        }
+        const totalAdmin = await userCollection.countDocuments(query)
         const search = req.query.search;
         // console.log(search)
 
@@ -148,7 +139,7 @@ const getUsers = async (req, res) => {
         }
 
         res.status(200).json({
-            adminCount,
+            adminCount: totalAdmin,
             count,
             users: result,
         })
@@ -174,6 +165,7 @@ const deleteUser = async (req, res) => {
 const checkAdmin = async (req, res) => {
     const userCollection = MongoServer.userCollection;
 
+
     try {
         const email = req.params.email;
         // console.log(email)
@@ -188,6 +180,7 @@ const checkAdmin = async (req, res) => {
             admin = false
         }
         res.status(200).json({ admin: admin })
+        // console.log(admin, "adminCheck")
 
     } catch (err) {
         res.status(500).json('There was a server side error!!')
